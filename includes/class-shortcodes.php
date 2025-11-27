@@ -544,8 +544,8 @@ class SH_Shortcodes {
         if (!empty($sponsor_logo)) {
             $logo_style = '';
             if (!empty($sponsor_logo_css)) {
-                // Sanitize CSS but allow basic styling
-                $logo_style = ' style="' . esc_attr($sponsor_logo_css) . '"';
+                // Sanitize CSS to prevent layout-breaking properties
+                $logo_style = ' style="' . esc_attr($this->sanitize_logo_css($sponsor_logo_css)) . '"';
             }
             
             if (!empty($sponsor_link)) {
@@ -599,9 +599,70 @@ class SH_Shortcodes {
         
         $output .= '</div>'; // .sh-sponsored-post-content
         $output .= '</div>'; // .sh-sponsored-post
-        $output .= '<div style="clear: both;"></div>'; // Clearfix to prevent text wrapping
         
         return $output;
+    }
+    
+    /**
+     * Sanitize logo CSS to prevent layout-breaking properties
+     * Only allows safe CSS properties that won't break the layout
+     * 
+     * @param string $css Raw CSS string from ACF field
+     * @return string Sanitized CSS string
+     */
+    private function sanitize_logo_css($css) {
+        // Whitelist of safe CSS properties for logo styling
+        $allowed_properties = array(
+            'width', 'height', 'max-width', 'max-height',
+            'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+            'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+            'border', 'border-width', 'border-style', 'border-color', 'border-radius',
+            'opacity', 'object-fit', 'vertical-align'
+        );
+        
+        // Remove dangerous properties that could break layout
+        $dangerous_properties = array(
+            'position', 'float', 'z-index', 'top', 'right', 'bottom', 'left',
+            'display', 'clear', 'overflow', 'transform', 'transition'
+        );
+        
+        // Basic sanitization - remove script tags and dangerous content
+        $css = wp_strip_all_tags($css);
+        $css = preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi', '', $css);
+        
+        // Parse CSS rules
+        $rules = array();
+        $css_parts = explode(';', $css);
+        
+        foreach ($css_parts as $part) {
+            $part = trim($part);
+            if (empty($part)) {
+                continue;
+            }
+            
+            $colon_pos = strpos($part, ':');
+            if ($colon_pos === false) {
+                continue;
+            }
+            
+            $property = trim(substr($part, 0, $colon_pos));
+            $value = trim(substr($part, $colon_pos + 1));
+            
+            // Check if property is allowed and not dangerous
+            $property_lower = strtolower($property);
+            $is_allowed = in_array($property_lower, $allowed_properties);
+            $is_dangerous = in_array($property_lower, $dangerous_properties);
+            
+            if ($is_allowed && !$is_dangerous && !empty($value)) {
+                // Additional sanitization of value
+                $value = preg_replace('/[^a-zA-Z0-9\s%\-.,()#]/', '', $value);
+                if (!empty($value)) {
+                    $rules[] = $property . ': ' . $value;
+                }
+            }
+        }
+        
+        return implode('; ', $rules);
     }
     
     /**

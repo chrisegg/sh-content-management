@@ -6,9 +6,12 @@
  */
 
 /* Prevent paragraph wrapping issues and ensure proper containment */
+/* Target all common WordPress content containers */
 .entry-content .sh-sponsored-post,
 .wp-block-post-content .sh-sponsored-post,
-.is-layout-constrained .sh-sponsored-post {
+.is-layout-constrained .sh-sponsored-post,
+.alignfull .sh-sponsored-post,
+.has-global-padding .sh-sponsored-post {
     margin: 30px 0 !important;
     clear: both !important;
     float: none !important;
@@ -16,6 +19,12 @@
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    position: relative !important;
+    /* Prevent any positioning that could break layout */
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
 }
 
 .sh-sponsored-post {
@@ -38,6 +47,8 @@
     contain: layout style;
     /* Ensure it stays within its container */
     min-width: 0;
+    /* Prevent any theme/plugin CSS from floating or positioning it */
+    z-index: auto;
 }
 
 .sh-sponsored-post-content {
@@ -73,6 +84,9 @@
     height: auto;
     display: block;
     object-fit: contain;
+    /* Prevent logo from breaking layout */
+    float: none !important;
+    position: relative !important;
 }
 
 .sh-sponsored-logo a {
@@ -129,6 +143,26 @@
 .sh-sponsored-byline .sh-sponsored-name-inline {
     font-weight: 600;
     color: #333;
+}
+
+/* Ensure content after sponsored post starts on new line */
+.sh-sponsored-post + p,
+.sh-sponsored-post + div,
+.sh-sponsored-post + h1,
+.sh-sponsored-post + h2,
+.sh-sponsored-post + h3,
+.sh-sponsored-post + h4,
+.sh-sponsored-post + h5,
+.sh-sponsored-post + h6 {
+    clear: both;
+    margin-top: 0;
+}
+
+/* Clearfix after sponsored post */
+.sh-sponsored-post::after {
+    content: "";
+    display: table;
+    clear: both;
 }
 
 /* Layout adjustments for larger screens */
