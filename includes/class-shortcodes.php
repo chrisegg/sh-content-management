@@ -49,6 +49,14 @@ class SH_Shortcodes {
             array(),
             SH_CONTENT_MANAGEMENT_VERSION
         );
+        
+        // Enqueue sponsored post styles
+        wp_enqueue_style(
+            'sh-sponsored-post',
+            SH_CONTENT_MANAGEMENT_PLUGIN_URL . 'public/css/sponsored-post.css',
+            array(),
+            SH_CONTENT_MANAGEMENT_VERSION
+        );
     }
     
     /**
@@ -66,6 +74,7 @@ class SH_Shortcodes {
         add_shortcode('pagebreak', array($this, 'page_break'));
         add_shortcode('relatedposts', array($this, 'related_posts'));
         add_shortcode('shvideo', array($this, 'sh_video'));
+        add_shortcode('sponsoredpost', array($this, 'sponsored_post'));
         add_shortcode('youtubevideo', array($this, 'youtube_video'));
         add_shortcode('webvideo', array($this, 'webvideo')); // Updated to query WordPress
     }
@@ -370,6 +379,206 @@ class SH_Shortcodes {
         
         $output .= '</ul>';
         $output .= '</div>';
+        
+        return $output;
+    }
+    
+    /**
+     * Shortcode for displaying sponsored post information
+     * 
+     * Integrates with ACF fields to display sponsor information in a styled box.
+     * Only displays if the post is marked as sponsored.
+     * 
+     * Usage: [sponsoredpost post_id="123"]
+     * 
+     * Attributes:
+     * - post_id: Post ID to get sponsor info for (default: current post)
+     * 
+     * ACF Fields Required:
+     * - sponsored_content (radio): "Yes" or "No" (field name: sponsored_content, group: group_691fee371b18f)
+     * - sponsor_name (text)
+     * - sponsor_byline (text)
+     * - sponsor_link (url)
+     * - sponsor_logo (image)
+     * - sponsor_logo_css (text, optional): Custom CSS for logo styling
+     * 
+     * @param array $atts Shortcode attributes
+     * @return string HTML output
+     */
+    public function sponsored_post($atts) {
+        // Check if ACF is active
+        if (!function_exists('get_field')) {
+            return ''; // ACF not available
+        }
+        
+        $a = shortcode_atts(array(
+            'post_id' => 0
+        ), $atts);
+        
+        // Get post ID - use provided ID or current post
+        $post_id = intval($a['post_id']);
+        if (!$post_id) {
+            global $post;
+            if ($post && $post->ID) {
+                $post_id = $post->ID;
+            } else {
+                return ''; // No post context available
+            }
+        }
+        
+        // Check if post is sponsored using the exact ACF field name
+        // Field name: sponsored_content (group: group_691fee371b18f)
+        $is_sponsored = false;
+        $sponsored_status = get_field('sponsored_content', $post_id);
+        
+        // Handle various return formats: 'Yes'/'No', true/false, 1/0, '1'/'0'
+        if ($sponsored_status === 'Yes' || 
+            $sponsored_status === 'yes' || 
+            $sponsored_status === true || 
+            $sponsored_status === 1 || 
+            $sponsored_status === '1') {
+            $is_sponsored = true;
+        }
+        
+        // Fallback: try other common field names if primary field is empty
+        if (!$is_sponsored) {
+            $sponsor_status_fields = array(
+                'is_article_sponsored',
+                'article_sponsored',
+                'sponsored_article',
+                'is_sponsored',
+                'sponsored'
+            );
+            
+            foreach ($sponsor_status_fields as $field_name) {
+                $status = get_field($field_name, $post_id);
+                if ($status === 'Yes' || $status === 'yes' || $status === true || $status === 1 || $status === '1') {
+                    $is_sponsored = true;
+                    break;
+                }
+            }
+        }
+        
+        // If not sponsored, return empty
+        if (!$is_sponsored) {
+            return '';
+        }
+        
+        // Get sponsor information - try common field names
+        $sponsor_name = '';
+        $sponsor_byline = '';
+        $sponsor_link = '';
+        $sponsor_logo = '';
+        $sponsor_logo_css = '';
+        
+        // Try multiple possible field name variations
+        $name_fields = array('sponsor_name', 'sponsor_name_text', 'sponsor');
+        foreach ($name_fields as $field) {
+            $value = get_field($field, $post_id);
+            if (!empty($value)) {
+                $sponsor_name = $value;
+                break;
+            }
+        }
+        
+        $byline_fields = array('sponsor_byline', 'sponsor_byline_text', 'sponsor_byline_textarea');
+        foreach ($byline_fields as $field) {
+            $value = get_field($field, $post_id);
+            if (!empty($value)) {
+                $sponsor_byline = $value;
+                break;
+            }
+        }
+        
+        $link_fields = array('sponsor_link', 'sponsor_link_url', 'sponsor_url');
+        foreach ($link_fields as $field) {
+            $value = get_field($field, $post_id);
+            if (!empty($value)) {
+                $sponsor_link = $value;
+                break;
+            }
+        }
+        
+        // Logo field (could be image object or URL)
+        $logo_fields = array('sponsor_logo', 'sponsor_logo_image', 'sponsor_logo_url');
+        foreach ($logo_fields as $field) {
+            $value = get_field($field, $post_id);
+            if (!empty($value)) {
+                // Handle ACF image field (could be array or URL)
+                if (is_array($value) && isset($value['url'])) {
+                    $sponsor_logo = $value['url'];
+                } elseif (is_string($value)) {
+                    $sponsor_logo = $value;
+                }
+                if (!empty($sponsor_logo)) {
+                    break;
+                }
+            }
+        }
+        
+        $logo_css_fields = array('sponsor_logo_css', 'sponsor_logo_css_text', 'sponsor_logo_styles');
+        foreach ($logo_css_fields as $field) {
+            $value = get_field($field, $post_id);
+            if (!empty($value)) {
+                $sponsor_logo_css = $value;
+                break;
+            }
+        }
+        
+        // If no sponsor name, don't display
+        if (empty($sponsor_name)) {
+            return '';
+        }
+        
+        // Build HTML output
+        $output = '<div class="sh-sponsored-post">';
+        $output .= '<div class="sh-sponsored-post-content">';
+        
+        // Sponsored label
+        $output .= '<div class="sh-sponsored-label">Sponsored</div>';
+        
+        // Logo (if available)
+        if (!empty($sponsor_logo)) {
+            $logo_style = '';
+            if (!empty($sponsor_logo_css)) {
+                // Sanitize CSS but allow basic styling
+                $logo_style = ' style="' . esc_attr($sponsor_logo_css) . '"';
+            }
+            
+            if (!empty($sponsor_link)) {
+                $output .= '<div class="sh-sponsored-logo">';
+                $output .= '<a href="' . esc_url($sponsor_link) . '" target="_blank" rel="nofollow noopener">';
+                $output .= '<img src="' . esc_url($sponsor_logo) . '" alt="' . esc_attr($sponsor_name) . '"' . $logo_style . '>';
+                $output .= '</a>';
+                $output .= '</div>';
+            } else {
+                $output .= '<div class="sh-sponsored-logo">';
+                $output .= '<img src="' . esc_url($sponsor_logo) . '" alt="' . esc_attr($sponsor_name) . '"' . $logo_style . '>';
+                $output .= '</div>';
+            }
+        }
+        
+        // Sponsor name and byline
+        $output .= '<div class="sh-sponsored-info">';
+        
+        if (!empty($sponsor_link)) {
+            $output .= '<h3 class="sh-sponsored-name">';
+            $output .= '<a href="' . esc_url($sponsor_link) . '" target="_blank" rel="nofollow noopener">';
+            $output .= esc_html($sponsor_name);
+            $output .= '</a>';
+            $output .= '</h3>';
+        } else {
+            $output .= '<h3 class="sh-sponsored-name">' . esc_html($sponsor_name) . '</h3>';
+        }
+        
+        if (!empty($sponsor_byline)) {
+            $output .= '<p class="sh-sponsored-byline">' . esc_html($sponsor_byline) . '</p>';
+        }
+        
+        $output .= '</div>'; // .sh-sponsored-info
+        
+        $output .= '</div>'; // .sh-sponsored-post-content
+        $output .= '</div>'; // .sh-sponsored-post
         
         return $output;
     }

@@ -1,4 +1,4 @@
-# SweetyHigh Content Management Plugin
+# Sweety High Content Management Plugin
 
 Complete content management system for SweetyHigh. Migrated from headless WordPress to full WordPress.
 
@@ -16,6 +16,7 @@ Complete content management system for SweetyHigh. Migrated from headless WordPr
 - `[featuredvideo]` - Featured video playlists
 - `[pagebreak slug="..."]` - Page breaks
 - `[shvideo video_id="..." playlist_id="..."]` - JWPlayer videos
+- `[sponsoredpost post_id="..."]` - Display sponsored post information from ACF fields
 - `[youtubevideo id="..."]` - YouTube videos
 
 ### Admin Features
@@ -93,6 +94,21 @@ GET /wp-json/wp/v2/sh_hero_banner?status=publish&per_page=1&orderby=date&order=d
 1. Edit a post
 2. Click "JWPlayer" or "Featured Video" button in TinyMCE
 3. Or manually add: `[webvideo slug="video-slug"]`
+
+### Sponsored Posts
+
+1. Edit a post
+2. Configure ACF fields for sponsored content:
+   - **Is this article being sponsored?** (radio): Set to "Yes"
+   - **Sponsor Name** (text): Name of the sponsor
+   - **Sponsor Byline** (text): Optional sponsor description/byline
+   - **Sponsor Link** (url): Link to sponsor website
+   - **Sponsor Logo** (image): Sponsor logo image
+   - **Sponsor Logo CSS** (text, optional): Custom CSS for logo styling
+3. Add shortcode to post content: `[sponsoredpost]`
+   - Or specify a post ID: `[sponsoredpost post_id="123"]`
+
+**Note:** The shortcode only displays if the post is marked as sponsored. The sponsored box will appear in a styled, prominent box at the top of the post content.
 
 ## Migration
 
