@@ -15,6 +15,10 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     position: relative;
+    display: block;
+    clear: both;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .sh-sponsored-post-content {
@@ -89,6 +93,23 @@
     font-size: 14px;
     line-height: 1.5;
     color: #666;
+}
+
+.sh-sponsored-byline .sh-sponsored-link {
+    color: #0073aa;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.sh-sponsored-byline .sh-sponsored-link:hover {
+    color: #005177;
+    text-decoration: underline;
+}
+
+.sh-sponsored-byline .sh-sponsored-name-inline {
+    font-weight: 600;
+    color: #333;
 }
 
 /* Layout adjustments for larger screens */

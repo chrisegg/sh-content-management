@@ -572,7 +572,24 @@ class SH_Shortcodes {
         }
         
         if (!empty($sponsor_byline)) {
-            $output .= '<p class="sh-sponsored-byline">' . esc_html($sponsor_byline) . '</p>';
+            // Replace #SPONSOR with linked sponsor name
+            // First escape the byline text, then replace #SPONSOR with HTML link
+            $byline_escaped = esc_html($sponsor_byline);
+            
+            if (strpos($byline_escaped, '#SPONSOR') !== false) {
+                // Build the sponsor link HTML
+                if (!empty($sponsor_link)) {
+                    $sponsor_link_html = '<a href="' . esc_url($sponsor_link) . '" target="_blank" rel="nofollow noopener" class="sh-sponsored-link">' . esc_html($sponsor_name) . '</a>';
+                } else {
+                    $sponsor_link_html = '<span class="sh-sponsored-name-inline">' . esc_html($sponsor_name) . '</span>';
+                }
+                // Replace the escaped #SPONSOR with the HTML link
+                $byline_html = str_replace('#SPONSOR', $sponsor_link_html, $byline_escaped);
+            } else {
+                $byline_html = $byline_escaped;
+            }
+            
+            $output .= '<p class="sh-sponsored-byline">' . $byline_html . '</p>';
         }
         
         $output .= '</div>'; // .sh-sponsored-info
