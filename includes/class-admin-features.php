@@ -54,8 +54,11 @@ class SH_Admin_Features {
         // Register JWPlayer settings
         add_action('admin_init', array($this, 'register_jwplayer_settings'));
         
-        // Disable comments by default for new posts
+        // Disable comments by default for all posts (new and existing)
         add_filter('wp_insert_post_data', array($this, 'disable_comments_by_default'), 10, 2);
+        
+        // Run one-time migration to disable comments on existing posts
+        add_action('admin_init', array($this, 'migrate_disable_comments_existing_posts'));
         
         // Limit post revisions to 5
         add_filter('wp_revisions_to_keep', array($this, 'limit_post_revisions'), 10, 2);
@@ -1235,9 +1238,9 @@ class SH_Admin_Features {
     }
     
     /**
-     * Disable comments by default for new posts
+     * Disable comments by default for all posts (new and existing)
      * 
-     * Sets comment_status to 'closed' for new posts, but keeps meta boxes visible
+     * Sets comment_status to 'closed' for all posts and pages, but keeps meta boxes visible
      * so users can enable comments per-post if needed.
      * 
      * @param array $data An array of slashed post data.
@@ -1245,22 +1248,51 @@ class SH_Admin_Features {
      * @return array Modified post data.
      */
     public function disable_comments_by_default($data, $postarr) {
-        // Only apply to new posts (not updates) and only for posts/pages
-        if (!empty($postarr['ID'])) {
-            return $data;
-        }
-        
         // Only apply to 'post' and 'page' post types
         if (!in_array($data['post_type'], array('post', 'page'))) {
             return $data;
         }
         
-        // Set comment status to closed if not explicitly set
+        // Set comment status to closed if not explicitly set by user
+        // This applies to both new posts and existing posts when they're updated
         if (!isset($postarr['comment_status']) || empty($postarr['comment_status'])) {
             $data['comment_status'] = 'closed';
         }
         
         return $data;
+    }
+    
+    /**
+     * One-time migration to disable comments on all existing posts
+     * 
+     * This runs once when the plugin is active to disable comments on all
+     * existing posts and pages that currently have comments enabled.
+     */
+    public function migrate_disable_comments_existing_posts() {
+        // Check if migration has already been run
+        $migration_done = get_option('sh_comments_disabled_migration_done', false);
+        if ($migration_done) {
+            return;
+        }
+        
+        // Only run for administrators
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        
+        // Disable comments on all existing posts and pages
+        global $wpdb;
+        
+        $wpdb->query(
+            "UPDATE {$wpdb->posts} 
+            SET comment_status = 'closed' 
+            WHERE post_type IN ('post', 'page') 
+            AND post_status != 'trash' 
+            AND comment_status = 'open'"
+        );
+        
+        // Mark migration as complete
+        update_option('sh_comments_disabled_migration_done', true);
     }
     
     /**
