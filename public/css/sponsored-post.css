@@ -5,6 +5,19 @@
  * Displays sponsor information in a prominent, styled box
  */
 
+/* Prevent paragraph wrapping issues and ensure proper containment */
+.entry-content .sh-sponsored-post,
+.wp-block-post-content .sh-sponsored-post,
+.is-layout-constrained .sh-sponsored-post {
+    margin: 30px 0 !important;
+    clear: both !important;
+    float: none !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
 .sh-sponsored-post {
     margin: 30px 0;
     padding: 0;
@@ -18,7 +31,13 @@
     display: block;
     clear: both;
     width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
+    float: none;
+    /* Prevent text wrapping around - force block-level behavior */
+    contain: layout style;
+    /* Ensure it stays within its container */
+    min-width: 0;
 }
 
 .sh-sponsored-post-content {

@@ -28,6 +28,9 @@ class SH_Shortcodes {
         
         // Enqueue frontend scripts
         add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_scripts'));
+        
+        // Prevent paragraph wrapping around sponsored post shortcode
+        add_filter('the_content', array($this, 'fix_sponsored_post_paragraphs'), 20);
     }
     
     /**
@@ -596,8 +599,34 @@ class SH_Shortcodes {
         
         $output .= '</div>'; // .sh-sponsored-post-content
         $output .= '</div>'; // .sh-sponsored-post
+        $output .= '<div style="clear: both;"></div>'; // Clearfix to prevent text wrapping
         
         return $output;
+    }
+    
+    /**
+     * Fix paragraph wrapping around sponsored post shortcode
+     * Removes empty paragraphs and br tags that WordPress adds around block-level shortcodes
+     * 
+     * @param string $content The post content
+     * @return string Filtered content
+     */
+    public function fix_sponsored_post_paragraphs($content) {
+        // Pattern to match: <p></p><div class="sh-sponsored-post">...content...</div><br>
+        // Remove empty paragraph before sponsored post
+        $content = preg_replace('/<p>\s*<\/p>\s*<div class="sh-sponsored-post">/', '<div class="sh-sponsored-post">', $content);
+        
+        // Remove paragraph wrapping around sponsored post div
+        $content = preg_replace('/<p>\s*<div class="sh-sponsored-post">/', '<div class="sh-sponsored-post">', $content);
+        $content = preg_replace('/<\/div>\s*<\/p>/', '</div>', $content);
+        
+        // Remove br tags immediately after sponsored post closing div (multiline match)
+        $content = preg_replace('/(<div class="sh-sponsored-post">.*?<\/div>)\s*<br\s*\/?>/s', '$1', $content);
+        
+        // Remove br tags after the closing div (more specific pattern for text following)
+        $content = preg_replace('/<\/div>\s*<br\s*\/?>\s*(?=[A-Z<])/', '</div>', $content);
+        
+        return $content;
     }
 }
 
